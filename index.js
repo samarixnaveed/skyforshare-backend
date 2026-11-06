@@ -226,6 +226,11 @@ setInterval(() => {
 // ---------- Network restriction (LAN-only) ----------
 // Only devices on the private/local network may connect. Optionally set
 // ALLOWED_IPS="192.168.100.119,192.168.100.50" to lock it to specific devices.
+// PUBLIC_MODE=true disables the LAN-only restriction for internet hosting
+// (Render/VPS). Optionally set MAX_UPLOAD_MB to cap upload size in public.
+const PUBLIC_MODE = process.env.PUBLIC_MODE === "true";
+const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB || 0); // 0 = unlimited
+
 const ALLOWED_IPS = (process.env.ALLOWED_IPS || "")
   .split(",")
   .map((s) => s.trim())
@@ -257,6 +262,7 @@ function isAllowedIp(raw) {
 }
 
 function isAllowedOrigin(origin) {
+  if (PUBLIC_MODE) return true;
   if (!origin) return true; // same-origin / curl
   try {
     return isPrivateIp(new URL(origin).hostname);
@@ -276,23 +282,47 @@ const io = new Server(server, {
   maxHttpBufferSize: 1e9,
 });
 
-app.use((req, res, next) => {
-  if (!isAllowedIp(req.socket.remoteAddress)) {
-    console.warn(`⛔ Blocked request from ${req.socket.remoteAddress}`);
-    return res
-      .status(403)
-      .json({ error: "Access restricted to local network" });
-  }
-  next();
-});
+if (!PUBLIC_MODE) {
+  app.use((req, res, next) => {
+    if (!isAllowedIp(req.socket.remoteAddress)) {
+      console.warn(`⛔ Blocked request from ${req.socket.remoteAddress}`);
+      return res
+        .status(403)
+        .json({ error: "Access restricted to local network" });
+    }
+    next();
+  });
 
-io.use((socket, next) => {
-  if (!isAllowedIp(socket.handshake.address)) {
-    console.warn(`⛔ Blocked socket from ${socket.handshake.address}`);
-    return next(new Error("Access restricted to local network"));
-  }
-  next();
-});
+  io.use((socket, next) => {
+    if (!isAllowedIp(socket.handshake.address)) {
+      console.warn(`⛔ Blocked socket from ${socket.handshake.address}`);
+      return next(new Error("Access restricted to local network"));
+    }
+    next();
+  });
+} else {
+  // Behind Render/other proxies the real client IP is in X-Forwarded-For
+  app.set("trust proxy", 1);
+
+  // Light per-IP rate limit so one visitor can't hammer a free instance
+  const hits = new Map();
+  app.use("/api", (req, res, next) => {
+    const ip = req.ip || "unknown";
+    const now = Date.now();
+    let h = hits.get(ip);
+    if (!h || now > h.reset) {
+      h = { n: 0, reset: now + 60000 };
+      hits.set(ip, h);
+    }
+    if (++h.n > 300)
+      return res.status(429).json({ error: "Too many requests — slow down" });
+    next();
+  });
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of hits) if (now > v.reset) hits.delete(k);
+  }, 5 * 60000).unref();
+}
 
 app.use(
   cors({
@@ -315,7 +345,11 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${id}${safeExt}`);
   },
 });
-const upload = multer({ storage }); // no limits => unlimited size
+// Unlimited by default; MAX_UPLOAD_MB caps per-file size (for free hosting)
+const upload = multer({
+  storage,
+  limits: MAX_UPLOAD_MB > 0 ? { fileSize: MAX_UPLOAD_MB * 1024 * 1024 } : {},
+});
 
 const fixName = (name) => {
   try {

@@ -6,7 +6,13 @@
       "Bash(git push *)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(mkdir -p /tmp/newserver)",
+      "Bash(unzip -o \"/c/Users/Admin/Downloads/server.zip\" -d /tmp/newserver)",
+      "Read(//tmp/**)",
+      "Bash(cp -rf /tmp/newserver/server/index.js /tmp/newserver/server/package.json /tmp/newserver/server/package-lock.json /tmp/newserver/server/data.json .)",
+      "Bash(cp -rf /tmp/newserver/server/uploads/. uploads/)",
+      "Bash(git rm *)"
     ]
   }
 }
