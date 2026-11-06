@@ -1,0 +1,35 @@
+{
+  "rooms": {
+    "public": {
+      "text": "https://github.com/Sentinelkids/Child-Desktop-App/actions/runs/41801584217/job/126478390799",
+      "textUpdatedAt": "2026-11-04T10:29:22.474Z",
+      "files": [
+        {
+          "id": "3d3dca93e224da85",
+          "name": "skyforshare-lockup-black-gold-on-white-transparent.png",
+          "storedName": "1793783177027-15c189a4c59ad35b.png",
+          "size": 119351,
+          "type": "image/png",
+          "room": "public",
+          "uploadedAt": "2026-11-04T09:06:17.182Z"
+        }
+      ],
+      "tokens": [],
+      "createdAt": "2026-11-03T13:57:09.194Z",
+      "lastActivity": "2026-11-04T10:35:27.454Z",
+      "displayName": "public"
+    },
+    "z8gxg5": {
+      "text": "",
+      "textUpdatedAt": null,
+      "files": [],
+      "tokens": [
+        "f8bf473d4d9107223b657bc71205c3e8"
+      ],
+      "displayName": "golden-ember-22",
+      "expiresAt": "2026-11-04T11:05:32.455Z",
+      "createdAt": "2026-11-04T10:35:32.455Z",
+      "lastActivity": "2026-11-04T10:35:32.493Z"
+    }
+  }
+}
